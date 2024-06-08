@@ -5,11 +5,16 @@
     clippy::unnecessary_wraps
 )]
 
-use anyhow::Result;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
+
+use anyhow::{anyhow, Result};
+use log::*;
+use vulkanalia::loader::{LibloadingLoader, LIBRARY};
+use vulkanalia::prelude::v1_0::*;
+use vulkanalia::window as vk_window;
 
 fn main() -> Result<()> {
     pretty_env_logger::init();
@@ -31,14 +36,18 @@ fn main() -> Result<()> {
             Event::AboutToWait => window.request_redraw(),
             Event::WindowEvent { event, .. } => match event {
                 // Render a frame if our Vulkan app is not being destroyed.
-                WindowEvent::RedrawRequested if !elwt.exiting() => unsafe { app.render(&window) }.unwrap(),
+                WindowEvent::RedrawRequested if !elwt.exiting() => {
+                    unsafe { app.render(&window) }.unwrap()
+                }
                 // Destroy our Vulkan app.
                 WindowEvent::CloseRequested => {
                     elwt.exit();
-                    unsafe { app.destroy(); }
+                    unsafe {
+                        app.destroy();
+                    }
                 }
                 _ => {}
-            }
+            },
             _ => {}
         }
     })?;
