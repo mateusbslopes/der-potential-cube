@@ -26,6 +26,8 @@ use vulkanalia::vk::ExtDebugUtilsExtension;
 
 use thiserror::Error;
 
+use vulkanalia::vk::KhrSurfaceExtension;
+
 fn main() -> Result<()> {
     pretty_env_logger::init();
 
@@ -87,6 +89,7 @@ impl App {
         let entry = Entry::new(loader).map_err(|b| anyhow!("{}", b))?;
         let mut data = AppData::default();
         let instance = Self::create_instance(window, &entry, &mut data)?;
+        data.surface = vk_window::create_surface(&instance, &window, &window)?;
         Self::pick_physical_device(&instance, &mut data)?;
 
         let device = Self::create_logical_device(&entry, &instance, &mut data)?;
@@ -250,6 +253,7 @@ impl App {
             self.instance
                 .destroy_debug_utils_messenger_ext(self.data.messenger, None);
         }
+        self.instance.destroy_surface_khr(self.data.surface, None);
 
         self.instance.destroy_instance(None);
     }
@@ -258,6 +262,7 @@ impl App {
 /// The Vulkan handles and associated properties used by our Vulkan app.
 #[derive(Clone, Debug, Default)]
 struct AppData {
+    surface: vk::SurfaceKHR,
     messenger: vk::DebugUtilsMessengerEXT,
     physical_device: vk::PhysicalDevice,
     graphics_queue: vk::Queue,
