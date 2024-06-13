@@ -30,6 +30,8 @@ use vulkanalia::vk::KhrSurfaceExtension;
 
 use vulkanalia::vk::KhrSwapchainExtension;
 
+use vulkanalia::bytecode::Bytecode;
+
 fn main() -> Result<()> {
     pretty_env_logger::init();
 
@@ -428,6 +430,25 @@ unsafe fn create_swapchain_image_views(device: &Device, data: &mut AppData) -> R
 }
 
 unsafe fn create_pipeline(device: &Device, data: &mut AppData) -> Result<()> {
+    let vert = include_bytes!("../shaders/vert.spv");
+    let frag = include_bytes!("../shaders/frag.spv");
+
+    let vert_shader_module = create_shader_module(device, &vert[..])?;
+    let frag_shader_module = create_shader_module(device, &frag[..])?;
+
+    let vert_stage = vk::PipelineShaderStageCreateInfo::builder()
+        .stage(vk::ShaderStageFlags::VERTEX)
+        .module(vert_shader_module)
+        .name(b"main\0");
+
+    let frag_stage = vk::PipelineShaderStageCreateInfo::builder()
+        .stage(vk::ShaderStageFlags::FRAGMENT)
+        .module(frag_shader_module)
+        .name(b"main\0");
+
+    device.destroy_shader_module(vert_shader_module, None);
+    device.destroy_shader_module(frag_shader_module, None);
+
     Ok(())
 }
 
@@ -513,6 +534,16 @@ impl SwapchainSupport {
                 .get_physical_device_surface_present_modes_khr(physical_device, data.surface)?,
         })
     }
+}
+
+unsafe fn create_shader_module(device: &Device, bytecode: &[u8]) -> Result<vk::ShaderModule> {
+    let bytecode = Bytecode::new(bytecode).unwrap();
+
+    let info = vk::ShaderModuleCreateInfo::builder()
+        .code_size(bytecode.code_size())
+        .code(bytecode.code());
+
+    Ok(device.create_shader_module(&info, None)?)
 }
 
 extern "system" fn debug_callback(
